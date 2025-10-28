@@ -10,7 +10,7 @@ defmodule Counter.Application do
     children = [
       # Starts a worker by calling: Counter.Worker.start_link(arg)
       # {Counter.Worker, arg}
-      SimpleCounter
+      TodoList
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
