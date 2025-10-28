@@ -100,3 +100,87 @@ defmodule MyRecursor do
     [new_head | new_tail]
   end
 end
+
+#---------KEY-VALUE-STORE------------------------
+defmodule KVStore do
+  use GenServer
+
+  def start_link() do
+    GenServer.start_link(__MODULE__, %{})
+  end
+
+  @impl true
+  def init(empty_map) do
+    #starts with empty MAP
+    {:ok, empty_map}
+  end
+    def get(pid, key) do
+      GenServer.call(pid, {:get, key})
+    end
+
+    @impl true
+    def handle_call({:get, key}, _from, map_state) do
+      value = Map.get(map_state, key)
+      {:reply, value, map_state}
+    end
+
+    def put(pid, key, value) do
+      GenServer.cast(pid, {:put, key, value })
+    end
+    @impl true
+    def handle_cast({:put, key, value}, map_state) do
+      new_map = Map.put(map_state, key, value)
+      {:noreply, new_map}
+    end
+
+end
+
+
+#===========================BANK ACCOUNT==================================
+  defmodule Account do
+    use GenServer
+    def start_link(owner, initial_balance) do
+      int_args = {owner, initial_balance}
+      GenServer.start_link(__MODULE__, int_args)
+    end
+
+    @impl true
+    def init({owner, initial_balance}) do
+      state = %{balance: initial_balance,
+                owner: owner
+    }
+      {:ok, state}
+    end
+
+    def deposit(pid, amount) do
+      GenServer.cast(pid, {:deposit, amount})
+    end
+
+    def get_balance(pid) do
+      GenServer.call(pid, :get_balance)
+    end
+    def withdraw(pid, amount) do
+      GenServer.call(pid, {:withdraw, amount})
+    end
+    @impl true
+    def handle_call(:get_balance, _from, state) do
+      {:reply, state.balance, state}
+    end
+    @impl true
+    def handle_call({:withdraw, amount}, _from, state) do
+      current_balance = state.balance
+      if amount > current_balance do
+        {:reply, {:error, "Insufficient funds to make the withdraw"}, state}
+      else
+        new_balance = current_balance - amount
+        new_state = Map.put(state, :balance, new_balance )
+        {:reply, {:ok, new_balance}, new_state}
+      end
+    end
+
+    @impl true
+    def handle_cast({:deposit, amount}, state) do
+      new_state = Map.update!(state, :balance, fn current_balance -> current_balance + amount end)
+      {:noreply, new_state}
+    end
+  end
