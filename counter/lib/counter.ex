@@ -60,3 +60,55 @@ defmodule Counter do
     {:noreply, new_state}
   end
 end
+
+#======================SIMPLE COUNTER======================
+  #Build a GenServer that holds a single number as its state
+  #include module SimpleCounter that has start_link(start_value)
+
+defmodule SimpleCounter do
+  use GenServer
+
+  def start_link(start_value) do
+    #pass the start_value as the second arguement
+    #it will be sent to the init/1 callback
+    GenServer.start_link(__MODULE__, start_value)
+  end
+
+  #server callbacks (what GenServer runs)
+  @impl true
+  @doc "this will tell the init what to do once it starts"
+  def init(start_value)do
+    #the start value from _ start_link arrives here and set it as the server's state/ memory
+    {:ok, start_value}
+  end
+
+  #now the get count
+  #CLIENT API
+    def get_count(pid) do
+      #this is synchronous.....sends message :get_count: to the `pid` and WAITS for reply
+      GenServer.call(pid, :get_count)
+    end
+
+    #-------------SERVER CALLBACK CONTINUED------------------
+    @impl true
+    def handle_call(:get_count, _from, state) do
+      #this one receives the message from get_count and the state within its memory
+      #and reply with the state and the new state is just the same state unchanged
+      {:reply, state, state}
+    end
+
+    #------------------CLIENT API CONTINUED-------------------
+    def increment(pid) do
+      #this is asynchronous thus send message but doesn't wait for reply
+      GenServer.cast(pid, :increment)
+    end
+    #----SERVER CALLBACKS CONTINUED
+    @impl true
+    def handle_cast(:increment, state) do
+      #this captures the message from the above function (increment) and its state
+      new_state = state + 1
+
+      #no need to reply but return a value of the new_state as NEW state
+      {:noreply, new_state}
+    end
+end

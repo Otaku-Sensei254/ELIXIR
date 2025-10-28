@@ -40,7 +40,7 @@ defmodule Listcheck do
 end
 
 # ===================LVEL 2=========================
-# woring with lists ENUM is ur best friend
+# working with lists ENUM is ur best friend
 defmodule Transformer do
   def process(numbers) do
     numbers
@@ -84,18 +84,19 @@ defmodule Maths do
   end
 end
 
-#=================Making my own recursion=========================
+# =================Making my own recursion=========================
 
 defmodule MyRecursor do
   def my_map([], _func) do
     []
   end
+
   def my_map([head | tail], func) do
     new_head = func.(head)
-    #this takes the original my_map and puts it as the tail of the newly formed new_tail
+    # this takes the original my_map and puts it as the tail of the newly formed new_tail
     new_tail = my_map(tail, func)
 
-    #builds a new list by putting the new_head at the front of the new formed new_tail
+    # builds a new list by putting the new_head at the front of the new formed new_tail
     [new_head | new_tail]
   end
 end
