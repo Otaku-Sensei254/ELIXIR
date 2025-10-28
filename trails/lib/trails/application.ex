@@ -10,7 +10,10 @@ defmodule Trails.Application do
     children = [
       # Starts a worker by calling: Trails.Worker.start_link(arg)
       # {Trails.Worker, arg}
-      KVStore, Account
+      # KVStore,
+      # Account
+      # Cart
+      MovieStore
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

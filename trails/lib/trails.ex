@@ -12,7 +12,7 @@ defmodule Math do
     a / b
   end
 
-  def safe_divide(a, 0) do
+  def safe_divide(_a, 0) do
     :error
   end
 end
@@ -101,86 +101,199 @@ defmodule MyRecursor do
   end
 end
 
-#---------KEY-VALUE-STORE------------------------
+# ---------KEY-VALUE-STORE------------------------
 defmodule KVStore do
+  use GenServer
+
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, %{})
+  end
+
+  @impl true
+  def init(empty_map) do
+    # starts with empty MAP
+    {:ok, empty_map}
+  end
+
+  def get(pid, key) do
+    GenServer.call(pid, {:get, key})
+  end
+
+  @impl true
+  def handle_call({:get, key}, _from, map_state) do
+    value = Map.get(map_state, key)
+    {:reply, value, map_state}
+  end
+
+  def put(pid, key, value) do
+    GenServer.cast(pid, {:put, key, value})
+  end
+
+  @impl true
+  def handle_cast({:put, key, value}, map_state) do
+    new_map = Map.put(map_state, key, value)
+    {:noreply, new_map}
+  end
+end
+
+# ===========================BANK ACCOUNT==================================
+defmodule Account do
+  use GenServer
+
+  def start_link(owner, initial_balance) do
+    int_args = {owner, initial_balance}
+    GenServer.start_link(__MODULE__, int_args)
+  end
+
+  @impl true
+  def init({owner, initial_balance}) do
+    state = %{balance: initial_balance, owner: owner}
+    {:ok, state}
+  end
+
+  def deposit(pid, amount) do
+    GenServer.cast(pid, {:deposit, amount})
+  end
+
+  def get_balance(pid) do
+    GenServer.call(pid, :get_balance)
+  end
+
+  def withdraw(pid, amount) do
+    GenServer.call(pid, {:withdraw, amount})
+  end
+
+  @impl true
+  def handle_call(:get_balance, _from, state) do
+    {:reply, state.balance, state}
+  end
+
+  @impl true
+  def handle_call({:withdraw, amount}, _from, state) do
+    current_balance = state.balance
+
+    if amount > current_balance do
+      {:reply, {:error, "Insufficient funds to make the withdraw"}, state}
+    else
+      new_balance = current_balance - amount
+      new_state = Map.put(state, :balance, new_balance)
+      {:reply, {:ok, new_balance}, new_state}
+    end
+  end
+
+  @impl true
+  def handle_cast({:deposit, amount}, state) do
+    new_state = Map.update!(state, :balance, fn current_balance -> current_balance + amount end)
+    {:noreply, new_state}
+  end
+end
+
+# =====================Shopping Cart======================
+defmodule Cart do
   use GenServer
 
   def start_link() do
     GenServer.start_link(__MODULE__, %{})
   end
 
+  # ----ADD ITEM---------
+  def add_item(pid, item_name, quantity) do
+    GenServer.cast(pid, {:add_item, item_name, quantity})
+  end
+
+  def get_cart(pid) do
+    GenServer.call(pid, :get_cart)
+  end
+
+  def checkout(pid) do
+    GenServer.call(pid, :checkout)
+  end
+
+  # ==============server apis===================
   @impl true
   def init(empty_map) do
-    #starts with empty MAP
     {:ok, empty_map}
   end
-    def get(pid, key) do
-      GenServer.call(pid, {:get, key})
-    end
 
-    @impl true
-    def handle_call({:get, key}, _from, map_state) do
-      value = Map.get(map_state, key)
-      {:reply, value, map_state}
-    end
+  @impl true
+  def handle_call(:get_cart, _from, state) do
+    {:reply, state, state}
+  end
 
-    def put(pid, key, value) do
-      GenServer.cast(pid, {:put, key, value })
-    end
-    @impl true
-    def handle_cast({:put, key, value}, map_state) do
-      new_map = Map.put(map_state, key, value)
-      {:noreply, new_map}
-    end
+  @impl true
+  def handle_cast({:add_item, item_name, quantity}, state) do
+    new_state =
+      Map.update(state, item_name, quantity, fn existing_quantity ->
+        existing_quantity + quantity
+      end)
 
+    {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_call(:checkout, _from, state) do
+    {:reply, {:ok, state}, %{}}
+  end
 end
 
+# =======================MOVIE STORE===================
+defmodule MovieStore do
+  use GenServer
 
-#===========================BANK ACCOUNT==================================
-  defmodule Account do
-    use GenServer
-    def start_link(owner, initial_balance) do
-      int_args = {owner, initial_balance}
-      GenServer.start_link(__MODULE__, int_args)
-    end
+  def start_link() do
+    GenServer.start_link(__MODULE__, %{})
+  end
 
-    @impl true
-    def init({owner, initial_balance}) do
-      state = %{balance: initial_balance,
-                owner: owner
-    }
-      {:ok, state}
-    end
+  # .....ADD movie into the list
+  def add_movie(pid, title, price, stock) do
+    GenServer.cast(pid, {:add_movie, title, price, stock})
+  end
 
-    def deposit(pid, amount) do
-      GenServer.cast(pid, {:deposit, amount})
-    end
+  def list_movies(pid) do
+    GenServer.call(pid, :list_movies)
+  end
 
-    def get_balance(pid) do
-      GenServer.call(pid, :get_balance)
-    end
-    def withdraw(pid, amount) do
-      GenServer.call(pid, {:withdraw, amount})
-    end
-    @impl true
-    def handle_call(:get_balance, _from, state) do
-      {:reply, state.balance, state}
-    end
-    @impl true
-    def handle_call({:withdraw, amount}, _from, state) do
-      current_balance = state.balance
-      if amount > current_balance do
-        {:reply, {:error, "Insufficient funds to make the withdraw"}, state}
-      else
-        new_balance = current_balance - amount
-        new_state = Map.put(state, :balance, new_balance )
-        {:reply, {:ok, new_balance}, new_state}
-      end
-    end
+  def buy_movie(pid, title) do
+    GenServer.call(pid, {:buy_movie, title})
+  end
 
-    @impl true
-    def handle_cast({:deposit, amount}, state) do
-      new_state = Map.update!(state, :balance, fn current_balance -> current_balance + amount end)
-      {:noreply, new_state}
+  @impl true
+  def init(empty_map) do
+    {:ok, empty_map}
+  end
+
+  @impl true
+  def handle_cast({:add_movie, title, price, stock}, state) do
+    movie_info = %{price: price, stock: stock}
+
+    new_state = Map.put(state, title, movie_info)
+    {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_call(:list_movies, _from, state) do
+    {:reply, state, state}
+  end
+
+  @impl true
+  def handle_call({:buy_movie, title}, _from, state) do
+    case Map.get(state, title) do
+      nil ->
+      {:reply, {:error, :not_found}, state}
+
+      %{stock: 0} ->
+        {:reply, {:error, {:out_of_stock}, state}}
+
+        movie ->
+          new_stock = movie.stock - 1
+          #here we change the current stock making the new_stock
+
+          #now we update the movie details {stock data} on the movie bought
+          updated_movie_stock = Map.put(movie, :stock, new_stock)
+
+          new_state = Map.put(state, movie, updated_movie_stock)
+
+          {:reply, {:ok, updated_movie_stock}, new_state}
     end
   end
+end
