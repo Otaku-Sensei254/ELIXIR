@@ -401,3 +401,129 @@ defmodule Hotel do
 
   end
 end
+
+#============Restaurant===============
+  defmodule Restaurant do
+    use GenServer
+
+    def start_link(opts) do
+        GenServer.start_link(__MODULE__, :ok, name: :menu)
+    end
+
+    # =======================================================
+    # CLIENT API
+    # =======================================================
+
+    def see_menu() do
+      GenServer.call(:menu, {:see_menu})
+    end
+
+    def make_order(name, order) do
+      GenServer.cast(:menu, {:make_order, name, order})
+    end
+
+    def complete_order(name) do
+      GenServer.call(:menu, {:complete_order, name})
+    end
+
+    # =======================================================
+    # SERVER CALLBACKS
+    # =======================================================
+
+    @impl true
+    def init(_arg) do
+      menu = %{ drinks: ["Fanta", "Coke", "Sprite"], food: ["Chips", "Mandazi", "Pilau"]}
+      {:ok, %{menu: menu, orders: %{}}}
+    end
+
+    @impl true
+    def handle_call({:see_menu}, _from, state) do
+        {:reply, state.menu, state}
+    end
+
+    @impl true
+    def handle_call({:complete_order, name}, _from, state) do
+        case Map.pop(state.orders, name) do
+          {nil, _orders} ->
+            # No order found, just reply
+             {:reply, {:error, :not_found}, state}
+
+           {order, new_orders} ->
+            # Order found! 'order' is now "Sprite"
+            IO.puts("Completed order for #{name}: #{order}")
+
+            # Create the new state with the order removed
+            new_state = %{state | orders: new_orders}
+
+            # Reply with :ok and the new_state
+            {:reply, :ok, new_state}
+        end
+    end
+
+    @impl true
+    def handle_cast({:make_order, name, order}, state) do
+
+      #check item availability
+      all_items = state.menu.drinks ++ state.menu.food
+
+      if order in all_items do
+         new_orders = Map.put(state.orders, name, order)
+          IO.puts("#{name} ordered #{order}")
+      {:noreply, %{state | orders: new_orders}}
+      else
+        IO.puts("Sorry,#{name} we do not have #{order} on the menu")
+        {:noreply, state}
+      end
+      # Store the actual 'order' string, not the whole 'state'
+
+
+
+      # Return the new state
+    end
+  end
+
+
+  #=====================PROCESS WATCHER================
+    defmodule ProcessWatcher do
+      use GenServer
+      require Logger
+
+      def start_link() do
+        GenServer.start_link(__MODULE__, :ok)
+      end
+
+      def watch(watcher_pid, pid_to_watch) do
+        GenServer.cast(watcher_pid, {:watch, pid_to_watch})
+      end
+
+      def get_watch_list(watcher_id) do
+        GenServer.call(watcher_id, {:get_list})
+      end
+
+      @impl true
+      def init(_arg) do
+          {:ok, MapSet.new()}
+      end
+
+      @impl true
+      def handle_call(:get_list, _from, state) do
+          {:reply, state, state}
+      end
+
+      @impl true
+      def handle_cast({:watch, pid_to_watch}, state) do
+        Process.monitor(pid_to_watch)
+        new_state = MapSet.put(state, pid_to_watch)
+        {:noreply , new_state}
+      end
+
+      @impl true
+      def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
+        #the pid belongs to the dead process
+        Logger.warn("Process #{inspect(pid)} has just died")
+        new_state = MapSet.delete(state, pid)
+
+        #now we reply with the update
+        {:noreply, new_state}
+      end
+    end

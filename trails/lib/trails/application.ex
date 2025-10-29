@@ -13,6 +13,7 @@ defmodule Trails.Application do
       #tells supervisor to start the KVStore and name it  :kv_store
     {KVStore, name: :kv_store},
     {Hotel, name: :hotel},
+    {Restaurant, name: :menu},
     {Settings, name: :settings},
 
       #Account,
