@@ -13,7 +13,8 @@ defmodule Trails.Application do
       # KVStore,
       # Account
       # Cart
-      MovieStore
+
+      {MovieStore, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
