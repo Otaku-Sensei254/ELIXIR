@@ -105,8 +105,8 @@ end
 defmodule KVStore do
   use GenServer
 
-  def start_link(_opts) do
-    GenServer.start_link(__MODULE__, %{})
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, %{}, opts)
   end
 
   @impl true
@@ -115,8 +115,9 @@ defmodule KVStore do
     {:ok, empty_map}
   end
 
-  def get(pid, key) do
-    GenServer.call(pid, {:get, key})
+  def get(key) do
+    #we use the atom name to locate the process
+    GenServer.call(:kv_store, {:get, key})
   end
 
   @impl true
@@ -125,8 +126,8 @@ defmodule KVStore do
     {:reply, value, map_state}
   end
 
-  def put(pid, key, value) do
-    GenServer.cast(pid, {:put, key, value})
+  def put( key, value) do
+    GenServer.cast(:kv_store, {:put, key, value})
   end
 
   @impl true
@@ -295,5 +296,108 @@ defmodule MovieStore do
 
           {:reply, {:ok, updated_movie_stock}, new_state}
     end
+  end
+end
+
+#==========================SETTINGS=============================
+defmodule Settings do
+  use GenServer
+
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, :ok, opts)
+  end
+
+  # ....CLIENT API.....
+  def get_theme() do
+    GenServer.call(:settings, :get_theme)
+  end
+  def get_language() do
+    GenServer.call(:settings, :get_language)
+  end
+  def get_notifications() do
+    GenServer.call(:settings, :get_notifications)
+  end
+
+  def get_setting(key) do
+    GenServer.call(:settings, {:get_setting, key}) #asks the server to get the setting
+  end
+
+  def update_setting(key, value) do
+    GenServer.cast(:settings, {:update_setting, key, value})
+  end
+  # ....SERVER API.....
+  @impl true
+  def handle_call(:get_theme, _from, state) do
+    {:reply, state.theme, state}
+  end
+  @impl true
+  def handle_call(:get_language, _from, state) do
+    {:reply, state.language, state}
+  end
+    @impl true
+    def handle_call(:get_notifications, _from, state) do
+      {:reply, state.notifications, state}
+    end
+  @impl true
+  def handle_cast({:update_setting, key, value}, state) do
+    new_state = Map.put(state, key, value)
+    {:noreply, new_state}
+  end
+  @impl true
+  def handle_call({:get_setting, key}, _from, state) do
+    value = Map.get(state, key)
+    {:reply, value, state}
+  end
+
+
+  @impl true
+  def init(_arg) do
+    default = %{theme: "dark", language: "en", notifications: true}
+    {:ok, default}
+  end
+end
+
+#==========================HOTEL=============================
+defmodule Hotel do
+  use GenServer
+
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, :ok, opts)
+  end
+
+  def check_in(name, room_number) do
+    GenServer.cast(:hotel, {:check_in, name, room_number})
+  end
+
+  def check_out(name) do
+    GenServer.cast(:hotel, {:check_out, name})
+  end
+
+  def get_occupancy(room_number) do
+    GenServer.call(:hotel, {:get_occupancy, room_number})
+  end
+
+  @impl true
+  def init(_arg) do
+    {:ok, %{occupancy: %{}}}
+  end
+
+  @impl true
+  def handle_cast({:check_in, name, room_number}, state) do
+    new_occupancy= Map.put(state.occupancy, name, room_number)
+
+    {:noreply, %{state | occupancy: new_occupancy}}
+  end
+
+  @impl true
+  def handle_cast({:check_out, name}, state) do
+    new_occupancy = Map.delete(state.occupancy, name)
+    {:noreply, %{state | occupancy: new_occupancy}}
+  end
+  @impl true
+  def handle_call({:get_occupancy, room_number}, _from, state) do
+    occupant = Enum.find_value(state.occupancy, fn {guest, room} -> if room == room_number, do: guest end)
+    {:reply, occupant, state}
+
   end
 end

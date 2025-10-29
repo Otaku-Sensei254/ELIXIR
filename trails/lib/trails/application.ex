@@ -10,9 +10,13 @@ defmodule Trails.Application do
     children = [
       # Starts a worker by calling: Trails.Worker.start_link(arg)
       # {Trails.Worker, arg}
-      # KVStore,
-      # Account
-      # Cart
+      #tells supervisor to start the KVStore and name it  :kv_store
+    {KVStore, name: :kv_store},
+    {Hotel, name: :hotel},
+    {Settings, name: :settings},
+
+      #Account,
+      #Cart,
 
       {MovieStore, []}
     ]
