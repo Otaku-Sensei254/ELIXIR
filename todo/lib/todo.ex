@@ -29,6 +29,14 @@ defmodule TodoList do
       tasks
   end
 
+  #marked as done
+  def mark_done(tasks, id) when is_list(tasks) and is_integer(id) do
+    Enum.map(tasks, fn
+      %Task{id: ^id} = task -> %{task | completed: true}
+    task -> tasks
+   end)
+  end
+
   #Helper function....
 
   defp next_id([]), do: 1
