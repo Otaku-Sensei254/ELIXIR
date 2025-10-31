@@ -43,3 +43,62 @@ defmodule Bank do
      new_bank_list
       end
 end
+
+
+defmodule BankServer do
+  use GenServer
+  def start_link(_opts \\ []) do
+    GenServer.start(__MODULE__, [], name: __MODULE__)
+  end
+
+  #===========ADD BANK================
+  def add_bank(bank_details) when is_map(bank_details) do
+    GenServer.cast(__MODULE__, {:add_bank, bank_details})
+  end
+
+  #===========REMOVE BANK================
+  def remove_bank(acc_no) do
+    GenServer.cast(__MODULE__, {:remove_bank, acc_no})
+  end
+
+  #===========CHANGE BANK STATE================
+  def change_state(id) when is_integer(id) do
+    GenServer.cast(__MODULE__, {:change_state, id})
+  end
+
+  #==============LIST BANKS==================
+    def get_banks() do
+      GenServer.call(__MODULE__, :get_banks)
+    end
+
+    #=========SERVER ACTIVITIES
+
+    @impl true
+    def handle_cast({:add_bank, bank_details}, state) do
+      id = length(state) + 1
+      new_bank = Map.put(bank_details, :id, id)
+      IO.puts("Just added #{inspect(new_bank)} to your list")
+      {:noreply, [new_bank | state]}
+    end
+
+    #========GET BANKS==============
+      @impl true
+      def handle_call(:get_banks, _from, state) do
+        {:reply, state, state}
+      end
+
+      #=========REMOVE BANK===============
+        @impl true
+        def handle_cast({:remove_bank, acc_no}, state) do
+          new_bank_list = Enum.reject(state, fn bank -> bank.acc_no == acc_no  end)
+          IO.puts("Removed the bank with account number #{acc_no} ")
+
+          {:noreply, new_bank_list}
+        end
+
+        #=====INIT=======
+    @impl true
+  def init(_args) do
+    {:ok, []}
+  end
+end
