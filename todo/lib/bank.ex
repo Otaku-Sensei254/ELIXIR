@@ -62,8 +62,8 @@ defmodule BankServer do
   end
 
   #===========CHANGE BANK STATE================
-  def change_state(id) when is_integer(id) do
-    GenServer.cast(__MODULE__, {:change_state, id})
+  def change_state(acc_no)  do
+    GenServer.cast(__MODULE__, {:change_state, acc_no})
   end
 
   #==============LIST BANKS==================
@@ -96,6 +96,21 @@ defmodule BankServer do
           {:noreply, new_bank_list}
         end
 
+
+        #CHANGE STATE TO FALSE
+        @impl true
+        def handle_cast({:change_state, acc_no}, state) do
+          new_bank_state = Enum.map(state, fn bank ->
+          if bank.acc_no == acc_no do
+            updated = %{bank | active: !bank.active}
+            IO.puts("Switched #{bank.name}'s #{bank.bank_name}: account number #{bank.acc_no} active: #{updated.active}")
+            updated
+          else
+             bank
+        end
+          end)
+          {:noreply, new_bank_state}
+        end
         #=====INIT=======
     @impl true
   def init(_args) do
